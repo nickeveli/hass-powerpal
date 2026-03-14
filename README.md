@@ -1,79 +1,96 @@
-# Powerpal custom component for Home Assistant
+# Powerpal for Home Assistant
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
-[![hacs][hacsbadge]][hacs]
+A Home Assistant custom integration to fetch energy consumption data from your [Powerpal](https://www.powerpal.net/) device via the Powerpal cloud API.
 
-_Component to integrate with [powerpal][powerpal]._
+This is a fork of [mindmelting/hass-powerpal](https://github.com/mindmelting/hass-powerpal) by [Lawrence (@mindmelting)](https://github.com/mindmelting), originally built on top of the [mindmelting.powerpal](https://github.com/mindmelting/powerpal) Python package.
 
-_This repository and integration is not affiliated with Powerpal._
+## What's changed in this fork
 
-**This component will set up the following platforms and entities.**
+The original integration stopped loading on newer versions of Home Assistant due to breaking changes in HA core and the external `mindmelting.powerpal` pip package failing to install. This fork addresses those issues and adds new functionality:
 
-Platform | Description
--- | --
-`sensor` | Show info from Powerpal Readings API.
+### Fixes
 
-Entity | Description
--- | --
-`sensor.powerpal_live_consumption` | Current reading from Powerpal Readings API (updated every minute).
-`sensor.powerpal_total_consumption` | Total consumption recorded by Powerpal - entity can be used in Energy Dashboard.
+- **Removed external dependency** — the `mindmelting.powerpal` pip package has been replaced with a built-in API client, eliminating the "Invalid handler specified" error that prevented the integration from loading.
+- **Updated to modern HA patterns** — replaced deprecated `CONNECTION_CLASS`, `asyncio.gather` unload pattern, and options flow `__init__` signature.
+- **Config flow fixed** — renamed class, removed deprecated attributes, added duplicate device detection via `async_set_unique_id`.
+- **Sensor null safety** — sensors now return `None` gracefully instead of crashing when API data is unavailable.
+- **DeviceInfo** — sensors now use the proper `DeviceInfo` object instead of a raw dict.
+- **Live consumption unit corrected** — changed from kW to W to accurately reflect the Wh-per-minute reading converted to instantaneous watts.
+- **Statistics import** — uses `StatisticMeanType.NONE` to avoid deprecation warnings on HA 2025.10+.
 
-⚠️ Please note ⚠️
+### New features
 
-For the entities to display up-to-date information - it requires your Powerpal app (which can be running in the background) to be connected to the Powerpal device continuously for it to report near realtime usage information. The current implementation does not retrospectively use historical data - this may come in a future release.
+- **Historical data backfill** — a new `powerpal.backfill_history` service action lets you import up to 3 years of historical energy data from the Powerpal cloud API into Home Assistant's long-term statistics, populating the Energy Dashboard with past data.
 
-![sensor][sensorimg]
+## Entities
 
-![energy][energyimg]
+| Entity | Type | Device class | Description |
+|--------|------|-------------|-------------|
+| Powerpal Total Consumption | Sensor | Energy (kWh) | Cumulative grid import energy. Use this in the Energy Dashboard under "Grid consumption". |
+| Powerpal Live Consumption | Sensor | Power (W) | Instantaneous power draw based on the most recent 60-second reading. Useful for Lovelace cards but not selectable in the Energy Dashboard (by design — the dashboard requires energy sensors). |
 
-## Automatic Installation
+## Installation
 
-1. Install HACS
-2. Within HA go to HACS > Integrations > ... (in top right corner) > Custom Repositories
-3. Add URL: `https://github.com/mindmelting/hass-powerpal`, Category: `Integration`
-4. Go to the integrations page inside your home assistant install
-5. Search for `Powerpal`
-6. Install, enter your Powerpal API Authorization Key and Powerpal Device ID.
+### HACS (recommended)
 
-## Manual Installation
+1. In HACS, go to **Integrations** → **⋮** (top right) → **Custom repositories**.
+2. Add URL: `https://github.com/nickeveli/hass-powerpal`, Category: **Integration**.
+3. Search for **Powerpal** and install.
+4. Restart Home Assistant.
 
-1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
-2. If you do not have a `custom_components` directory (folder) there, you need to create it.
-3. In the `custom_components` directory (folder) create a new folder called `powerpal`.
-4. Download _all_ the files from the `custom_components/powerpal/` directory (folder) in this repository.
-5. Place the files you downloaded in the new directory (folder) you created.
-6. Restart Home Assistant
-7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for `Powerpal`
+### Manual
 
-Using your HA configuration directory (folder) as a starting point you should now also have this:
+1. Copy the `custom_components/powerpal/` folder into your Home Assistant `config/custom_components/` directory.
+2. Restart Home Assistant.
 
-```text
-custom_components/powerpal/translations/en.json
-custom_components/powerpal/__init__.py
-custom_components/powerpal/config_flow.py
-custom_components/powerpal/const.py
-custom_components/powerpal/manifest.json
-custom_components/powerpal/sensor.py
-```
+## Configuration
 
-## Configuration is done in the UI
+1. Go to **Settings** → **Devices & Services** → **Add Integration**.
+2. Search for **Powerpal**.
+3. Enter your **API Authorization Key** and **Device ID**.
 
-<!---->
+### Finding your API key and Device ID
 
-## Contributions are welcome
+Your API key and Device ID can be obtained from the Powerpal device itself over BLE using the [powerpal_ble tools](https://github.com/WeekendWarrior1/powerpal_ble), or by intercepting the Powerpal app's API traffic.
 
-If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
+## Backfilling historical data
 
-***
+Once the integration is set up, you can import historical energy data into Home Assistant's long-term statistics so the Energy Dashboard shows past consumption.
 
-[powerpal]: https://github.com/mindmelting/powerpal
-[commits-shield]: https://img.shields.io/github/commit-activity/y/mindmelting/hass-powerpal.svg?style=for-the-badge
-[commits]: https://github.com/mindmelting/hass-powerpal/commits/master
-[hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/mindmelting/hass-powerpal.svg?style=for-the-badge
-[releases]: https://github.com/mindmelting/hass-powerpal/releases
-[sensorimg]: https://raw.githubusercontent.com/mindmelting/hass-powerpal/main/sensor.png
-[energyimg]: https://raw.githubusercontent.com/mindmelting/hass-powerpal/main/energy.png
+1. Go to **Developer Tools** → **Actions** (or **Services** on older HA versions).
+2. Search for `powerpal.backfill_history`.
+3. Fill in the fields:
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `device_id` | Yes | — | Your Powerpal device ID (8-character hex string, e.g. `00abcdef`). |
+| `days` | No | 365 | How many days of history to fetch (max 1095 / ~3 years). |
+| `sample_minutes` | No | 30 | Bucket size for readings. Use 30 for half-hourly, 60 for hourly. Smaller values give more detail but take longer. |
+
+4. Click **Perform action**.
+
+The backfill fetches data in monthly chunks from the Powerpal time series API and imports it as hourly statistics. Progress is logged — check **Settings** → **System** → **Logs** and filter for `powerpal`.
+
+The backfill automatically calculates the correct offset from your device's lifetime total so that historical and live data join seamlessly. Re-running the backfill overwrites previous values, so it's safe to run multiple times.
+
+## Energy Dashboard setup
+
+The Powerpal measures grid import only (it counts LED pulses on your smart meter). To get the full energy flow diagram, pair it with a solar inverter integration:
+
+| Dashboard slot | Sensor to use |
+|---|---|
+| **Grid consumption** | `sensor.powerpal_total_consumption` |
+| **Return to grid** | Your inverter's export energy sensor |
+| **Solar production** | Your inverter's total PV generation sensor |
+
+## Credits
+
+- **[Lawrence (@mindmelting)](https://github.com/mindmelting)** — original integration and the `mindmelting.powerpal` Python package.
+- **[forfuncsake](https://github.com/forfuncsake/powerpal)** — Go client and Powerpal API documentation that inspired the original project.
+- **[WeekendWarrior1](https://github.com/WeekendWarrior1/powerpal_ble)** — BLE documentation and ESPHome component for local Powerpal data retrieval.
+
+## License
+
+This project is licensed under the MIT License — see the original [LICENSE](LICENSE) file for details.
