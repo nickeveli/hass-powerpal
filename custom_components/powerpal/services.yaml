@@ -1,0 +1,38 @@
+backfill_history:
+  name: Backfill historical data
+  description: >-
+    Fetch historical energy data from the Powerpal cloud API and import it
+    into Home Assistant's long-term statistics. This populates the Energy
+    Dashboard with past data.
+  fields:
+    device_id:
+      name: Device ID
+      description: Your Powerpal device ID (8 character hex string).
+      required: true
+      example: "00abcdef"
+      selector:
+        text:
+    days:
+      name: Days of history
+      description: How many days back to fetch (max 1095 / ~3 years).
+      required: false
+      default: 365
+      example: 365
+      selector:
+        number:
+          min: 1
+          max: 1095
+          mode: box
+    sample_minutes:
+      name: Sample interval (minutes)
+      description: >-
+        Bucket size for readings. Use 30 for half-hourly, 60 for hourly.
+        Smaller values give more detail but take longer to fetch.
+      required: false
+      default: 30
+      example: 30
+      selector:
+        number:
+          min: 1
+          max: 1440
+          mode: box

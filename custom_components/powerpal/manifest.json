@@ -2,14 +2,13 @@
   "domain": "powerpal",
   "name": "Powerpal",
   "codeowners": [
-    "@mindmelting"
+    "@nickeveli"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/mindmelting/hass-powerpal",
+  "documentation": "https://github.com/nickeveli/hass-powerpal",
+  "integration_type": "device",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/mindmelting/hass-powerpal/issues",
-  "requirements": [
-    "mindmelting.powerpal==0.3.0"
-  ],
-  "version": "0.1.0"
+  "issue_tracker": "https://github.com/nickeveli/hass-powerpal/issues",
+  "requirements": [],
+  "version": "0.4.0"
 }
